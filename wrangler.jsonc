@@ -1,0 +1,30 @@
+{
+  "name": "ai-game-maker",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-29",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "./dist/client",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "ENVIRONMENT": "production"
+  },
+  "kv_namespaces": [
+    {
+      "binding": "GAME_KV",
+      "id": "",
+      "preview_id": ""
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ai-game-maker",
+      "database_id": ""
+    }
+  ]
+}

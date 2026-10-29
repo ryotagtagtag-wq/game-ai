@@ -5,20 +5,8 @@ import { cloudflare } from '@cloudflare/vite-plugin';
 export default defineConfig({
   plugins: [
     preact(),
-    cloudflare({
-      viteEnvironment: { name: 'ssr' },
-    }),
+    cloudflare(),
   ],
-  build: {
-    outDir: 'dist/client',
-    emptyOutDir: true,
-    ssr: true,
-    rollupOptions: {
-      input: {
-        client: './src/client/entry-client.tsx',
-      },
-    },
-  },
   server: {
     port: 8788,
   },

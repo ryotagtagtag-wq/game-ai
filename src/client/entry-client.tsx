@@ -1,13 +1,13 @@
 /** クライアント エントリーポイント */
 
 import { render } from 'preact';
-import { Router } from 'preact-router';
+import { Route, Router } from 'preact-router';
 import App from './App';
 import './styles.css';
 
 render(
   <Router>
-    <App />
+    <Route default component={App} />
   </Router>,
   document.getElementById('app')!
 );

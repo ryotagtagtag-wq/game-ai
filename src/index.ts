@@ -17,17 +17,7 @@ const app = new Hono<{ Bindings: Env }>();
 
 // ミドルウェア
 app.use('*', logger());
-app.use('*', secureHeaders({
-  contentSecurityPolicy: {
-    defaultSrc: ["'self'"],
-    scriptSrc: ["'self'", "'unsafe-inline'"],
-    styleSrc: ["'self'", "'unsafe-inline'"],
-    imgSrc: ["'self'", 'data:', 'blob:'],
-    frameSrc: ["'self'"],
-    connectSrc: ["'self'"],
-  },
-  xFrameOptions: 'SAMEORIGIN',
-}));
+app.use('*', secureHeaders());
 app.use('/api/*', cors({
   origin: ['https://ai-game.ryopc.org', 'http://localhost:8788'],
   credentials: true,

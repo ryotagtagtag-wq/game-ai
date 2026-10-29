@@ -9,7 +9,13 @@ import { getAIProviders, generateWithFallback } from '../../lib/ai';
 import { sendTeacherApproved } from '../../lib/email';
 import type { Env, Game, Participant, Lecture } from '../../shared';
 
-const game = new Hono<{ Bindings: Env }>();
+const game = new Hono<{
+  Bindings: Env;
+  Variables: {
+    participant: Participant;
+    lecture: Lecture;
+  };
+}>();
 
 // 参加者認証ミドルウェア
 async function requireParticipant(c: any, next: any) {

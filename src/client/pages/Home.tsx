@@ -2,16 +2,7 @@
 
 import { Link } from 'preact-router/match';
 
-const Home = ({ user }: { user: any }) => {
-  if (user) {
-    setTimeout(() => {
-      if (user.role === 'teacher') window.location.href = '/teacher/dashboard';
-      else if (user.role === 'admin') window.location.href = '/admin';
-      else window.location.href = '/app';
-    }, 0);
-    return <div class="loading"><div class="spinner"></div><p>リダイレクト中...</p></div>;
-  }
-
+const Home = () => {
   return (
     <div class="home">
       <div class="hero">

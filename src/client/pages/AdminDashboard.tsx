@@ -66,7 +66,15 @@ const AdminDashboard = ({ user }: { user: any }) => {
   );
 };
 
-const ApplicationsTab = ({ applications }: { applications: any[] }, { onApprove, onReject }: { onApprove: (id: string) => void; onReject: (id: string) => void }) => {
+const ApplicationsTab = ({
+  applications,
+  onApprove,
+  onReject,
+}: {
+  applications: any[];
+  onApprove: (id: string) => void;
+  onReject: (id: string) => void;
+}) => {
   const pendingApps = applications.filter(a => a.status === 'pending');
 
   return (

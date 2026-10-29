@@ -1,10 +1,9 @@
 /** メイン App コンポーネント */
 
-import { useState, useEffect } from 'preact/hooks';
+import { useEffect } from 'preact/hooks';
 import { useSignal } from '@preact/signals';
-import { Link } from 'preact-router';
+import { Link } from 'preact-router/match';
 import Home from './pages/Home';
-import TeacherRegister from './pages/TeacherRegister';
 import TeacherLogin from './pages/TeacherLogin';
 import TeacherPending from './pages/TeacherPending';
 import TeacherRejected from './pages/TeacherRejected';
@@ -25,7 +24,7 @@ function App() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await api.get('/auth/me');
+        const res = await api.get<User>('/auth/me');
         user.value = res;
       } catch {
         user.value = null;
@@ -41,10 +40,17 @@ function App() {
 
     // 認証不要ページ
     if (window.location.pathname === '/' || window.location.pathname === '/teacher/register') {
-      return <Home user={user.value} />;
+      if (!user.value) return <Home />;
+
+      window.location.replace(user.value.role === 'teacher'
+        ? '/teacher/dashboard'
+        : user.value.role === 'admin'
+          ? '/admin'
+          : '/app');
+      return <Loading />;
     }
     if (window.location.pathname === '/teacher/login') {
-      return <TeacherLogin user={user.value} />;
+      return <TeacherLogin />;
     }
     if (window.location.pathname === '/join') {
       return <Join user={user.value} />;
@@ -88,28 +94,30 @@ function App() {
 
   return (
     <div class="app">
-      <header class="header" style={{ display: user.value ? 'flex' : 'none' }}>
-        <Link href="/" class="logo">AIゲームメーカー</Link>
-        <nav class="nav">
-          {user.value.role === 'teacher' && user.value.status === 'approved' && (
-            <>
-              <Link href="/app">ゲーム作成</Link>
-              <Link href="/mygames">マイゲーム</Link>
-              <Link href="/teacher/dashboard">講座管理</Link>
-            </>
-          )}
-          {user.value.role === 'admin' && (
-            <Link href="/admin">管理者</Link>
-          )}
-          {user.value.role === 'participant' && user.value.status === 'approved' && (
-            <>
-              <Link href="/app">ゲーム作成</Link>
-              <Link href="/mygames">マイゲーム</Link>
-            </>
-          )}
-          <button onClick={logout} class="btn-logout">ログアウト</button>
-        </nav>
-      </header>
+      {user.value && (
+        <header class="header">
+          <Link href="/" class="logo">AIゲームメーカー</Link>
+          <nav class="nav">
+            {user.value.role === 'teacher' && user.value.status === 'approved' && (
+              <>
+                <Link href="/app">ゲーム作成</Link>
+                <Link href="/mygames">マイゲーム</Link>
+                <Link href="/teacher/dashboard">講座管理</Link>
+              </>
+            )}
+            {user.value.role === 'admin' && (
+              <Link href="/admin">管理者</Link>
+            )}
+            {user.value.role === 'participant' && user.value.status === 'approved' && (
+              <>
+                <Link href="/app">ゲーム作成</Link>
+                <Link href="/mygames">マイゲーム</Link>
+              </>
+            )}
+            <button onClick={logout} class="btn-logout">ログアウト</button>
+          </nav>
+        </header>
+      )}
       <main class="main">{routes()}</main>
     </div>
   );

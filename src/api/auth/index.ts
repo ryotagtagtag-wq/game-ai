@@ -73,7 +73,7 @@ auth.get('/me', async (c) => {
   if (session.role === 'teacher') {
     const teacher = await c.env.GAME_KV.get(`teacher:${session.userId}`, 'json') as Teacher | null;
     if (!teacher) throw new HTTPException(404, { message: 'ユーザーが見つかりません' });
-    return c.json({ role: 'teacher', user: { id: teacher.id, email: teacher.email, lectureName: teacher.lectureName, status: teacher.status } });
+    return c.json({ role: 'teacher', user: { id: teacher.id, email: teacher.email, lectureName: teacher.lectureName, status: teacher.status, reviewNote: teacher.reviewNote } });
   }
 
   if (session.role === 'admin') {

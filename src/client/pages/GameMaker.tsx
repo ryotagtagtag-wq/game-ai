@@ -3,6 +3,7 @@
 import { useSignal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
 import { api } from '../utils/api';
+import type { Game } from '../../shared';
 
 const GameMaker = ({ user }: { user: any }) => {
   const prompt = useSignal('');
@@ -21,7 +22,7 @@ const GameMaker = ({ user }: { user: any }) => {
   useEffect(() => {
     const fetchRemaining = async () => {
       try {
-        const res = await api.get('/game/remaining');
+        const res = await api.get<{ remaining: number; limit: number; used: number }>('/game/remaining');
         remaining.value = res.remaining;
         limit.value = res.limit;
         used.value = res.used;
@@ -43,7 +44,7 @@ const GameMaker = ({ user }: { user: any }) => {
     success.value = '';
 
     try {
-      const res = await api.post('/game/generate', { prompt: prompt.value });
+      const res = await api.post<{ game: Game; remaining: number }>('/game/generate', { prompt: prompt.value });
       html.value = res.game.htmlContent;
       gameId.value = res.game.id;
       remaining.value = res.remaining;
@@ -68,7 +69,7 @@ const GameMaker = ({ user }: { user: any }) => {
     success.value = '';
 
     try {
-      const res = await api.post('/game/modify', { gameId: gameId.value, instruction: instruction.value });
+      const res = await api.post<{ game: Game; remaining: number }>('/game/modify', { gameId: gameId.value, instruction: instruction.value });
       html.value = res.game.htmlContent;
       gameId.value = res.game.id;
       remaining.value = res.remaining;

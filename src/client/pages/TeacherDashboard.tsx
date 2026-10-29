@@ -15,7 +15,7 @@ const TeacherDashboard = ({ user }: { user: any }) => {
   useEffect(() => {
     const fetchLecture = async () => {
       try {
-        const res = await api.get('/teacher/lecture');
+        const res = await api.get<{ lecture: import('../../shared').Lecture | null }>('/teacher/lecture');
         lecture.value = res.lecture;
       } catch (err: any) {
         error.value = err.message;
@@ -28,9 +28,9 @@ const TeacherDashboard = ({ user }: { user: any }) => {
 
   const handleCodeRegenerate = async () => {
     try {
-      const res = await api.post('/teacher/lecture/regenerate-code', {});
-      if (res.lecture) {
-        lecture.value = res.lecture;
+      const res = await api.post<{ code: string }>('/teacher/lecture/regenerate-code', {});
+      if (lecture.value) {
+        lecture.value = { ...lecture.value, code: res.code };
         success.value = '講座コードを再発行しました';
       }
     } catch (err: any) {
@@ -42,7 +42,7 @@ const TeacherDashboard = ({ user }: { user: any }) => {
     e.preventDefault();
     try {
       const formData = new FormData(e.currentTarget as HTMLFormElement);
-      const res = await api.put('/teacher/lecture', {
+      const res = await api.put<{ lecture: import('../../shared').Lecture }>('/teacher/lecture', {
         name: formData.get('name'),
         expiresAt: formData.get('expiresAt'),
         defaultGenLimit: Number(formData.get('defaultGenLimit')),
@@ -174,7 +174,7 @@ const ParticipantsTab = ({ lecture }: { lecture: any }) => {
   return (
     <div class="participants-tab">
       <div class="filter-bar">
-        <select value={filter.value} onChange={(e) => filter.value = e.target.value as any} class="form-input" style={{width: 'auto', maxWidth: '200px'}}>
+        <select value={filter.value} onChange={(e) => filter.value = e.currentTarget.value as typeof filter.value} class="form-input" style={{width: 'auto', maxWidth: '200px'}}>
           <option value="all">全て</option>
           <option value="pending">承認待ち</option>
           <option value="approved">承認済み</option>
@@ -232,7 +232,15 @@ const ParticipantsTab = ({ lecture }: { lecture: any }) => {
   );
 };
 
-const SettingsTab = ({ lecture }: { lecture: any }, { onRegenerate, onUpdate }: { onRegenerate: () => void; onUpdate: (e: Event) => void }) => {
+const SettingsTab = ({
+  lecture,
+  onRegenerate,
+  onUpdate,
+}: {
+  lecture: any;
+  onRegenerate: () => void;
+  onUpdate: (e: Event) => void;
+}) => {
   if (!lecture) return <p>講座が作成されていません</p>;
 
   return (

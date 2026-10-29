@@ -8,7 +8,13 @@ import { kvGet, kvPut } from '../../lib/kv';
 import { sendTeacherApproved, sendTeacherRejected } from '../../lib/email';
 import type { Env, Teacher, Lecture, Participant } from '../../shared';
 
-const teacher = new Hono<{ Bindings: Env }>();
+const teacher = new Hono<{
+  Bindings: Env;
+  Variables: {
+    teacher: Teacher;
+    sessionId: string;
+  };
+}>();
 
 // 認証ミドルウェア
 async function requireTeacher(c: any, next: any) {

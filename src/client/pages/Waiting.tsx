@@ -14,7 +14,7 @@ const Waiting = () => {
 
     const check = async () => {
       try {
-        const res = await api.get('/join/status');
+        const res = await api.get<{ status: 'pending' | 'approved'; lectureName?: string }>('/join/status');
         status.value = res.status;
         lectureName.value = res.lectureName || '';
         if (res.status === 'approved') {

@@ -3,6 +3,7 @@
 import { useSignal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
 import { api } from '../utils/api';
+import type { Game } from '../../shared';
 
 const MyGames = ({ user }: { user: any }) => {
   const games = useSignal<any[]>([]);
@@ -11,7 +12,7 @@ const MyGames = ({ user }: { user: any }) => {
   useEffect(() => {
     const fetchGames = async () => {
       try {
-        const res = await api.get('/game/list/mine');
+        const res = await api.get<{ games: Game[] }>('/game/list/mine');
         games.value = res.games || [];
       } catch {}
       loading.value = false;

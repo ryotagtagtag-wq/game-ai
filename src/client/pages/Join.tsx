@@ -24,7 +24,7 @@ const Join = ({ user }: { user: any }) => {
     error.value = '';
 
     try {
-      const res = await api.post('/join/join', { code: code.value.toUpperCase() });
+      const res = await api.post<{ status: 'pending' | 'approved' }>('/join/join', { code: code.value.toUpperCase() });
       if (res.status === 'pending') {
         window.location.href = '/waiting';
       } else if (res.status === 'approved') {

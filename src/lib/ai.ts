@@ -49,8 +49,10 @@ function createGroqProvider(env: Env): AIProvider {
       throw new Error(`Groq API error: ${res.status} ${err}`);
     }
 
-    const data = await res.json();
-    return data.choices[0]?.message?.content || '';
+    const data = await res.json() as {
+      choices?: { message?: { content?: string } }[];
+    };
+    return data.choices?.[0]?.message?.content || '';
   }
 
   return {
@@ -92,7 +94,9 @@ function createGeminiProvider(env: Env): AIProvider {
       throw new Error(`Gemini API error: ${res.status} ${err}`);
     }
 
-    const data = await res.json();
+    const data = await res.json() as {
+      candidates?: { content?: { parts?: { text?: string }[] } }[];
+    };
     return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
   }
 

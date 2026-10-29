@@ -10,7 +10,7 @@ const TeacherRejected = () => {
   useEffect(() => {
     const fetchReason = async () => {
       try {
-        const res = await api.get('/auth/me');
+        const res = await api.get<{ user?: { reviewNote?: string } }>('/auth/me');
         if (res.user?.reviewNote) {
           reason.value = res.user.reviewNote;
         }

@@ -27,7 +27,7 @@ async function sendEmailAPI(env: Env, req: EmailRequest): Promise<void> {
     }),
   });
 
-  const data = await res.json();
+  const data = await res.json() as { status?: string; message?: string };
   if (data.status !== 'success') {
     throw new Error(`Email API error: ${data.message}`);
   }

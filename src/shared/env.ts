@@ -1,6 +1,8 @@
 /// <reference types="@cloudflare/workers-types" />
 
 export interface CloudflareBindings {
+  ENVIRONMENT: string;
+
   // KV
   GAME_KV: KVNamespace;
 

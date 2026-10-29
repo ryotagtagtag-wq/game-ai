@@ -23,14 +23,8 @@ const TeacherLogin = () => {
     error.value = '';
 
     try {
-      const res = await api.post('/auth/teacher/login', form.value);
-      if (res.user?.status === 'pending') {
-        window.location.href = '/teacher/pending';
-      } else if (res.user?.status === 'rejected') {
-        window.location.href = '/teacher/rejected';
-      } else {
-        window.location.href = '/teacher/dashboard';
-      }
+      await api.post('/auth/teacher/login', form.value);
+      window.location.href = '/teacher/dashboard';
     } catch (err: any) {
       error.value = err.message || 'ログインに失敗しました';
     } finally {

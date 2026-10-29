@@ -56,7 +56,7 @@ export async function deleteSession(env: Env, sessionId: string): Promise<void> 
   await env.GAME_KV.delete(SESSION_PREFIX + sessionId);
 }
 
-export function getSessionIdFromCookie(cookieHeader: string | null): string | null {
+export function getSessionIdFromCookie(cookieHeader: string | null | undefined): string | null {
   if (!cookieHeader) return null;
   const match = cookieHeader.match(new RegExp(`${SESSION_COOKIE_NAME}=([^;]+)`));
   return match ? match[1] : null;

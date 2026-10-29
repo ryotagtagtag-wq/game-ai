@@ -8,6 +8,7 @@ export interface User {
     email: string;
     lectureName?: string;
     status?: string;
+    reviewNote?: string;
   };
 }
 
@@ -24,8 +25,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: 'エラーが発生しました' }));
-    throw new Error(err.message || `HTTP ${res.status}`);
+    const body = await res.json().catch(() => null) as { message?: unknown } | null;
+    const message = typeof body?.message === 'string' ? body.message : `HTTP ${res.status}`;
+    throw new Error(message);
   }
 
   if (res.status === 204) return {} as T;
@@ -34,7 +36,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 export const api = {
   get: <T>(path: string) => request<T>(path, { method: 'GET' }),
-  post: <T>(path: string, body: unknown) => request<T>(path, { method: 'POST', body: JSON.stringify(body) }),
+  post: <T>(path: string, body?: unknown) => request<T>(path, {
+    method: 'POST',
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+  }),
   put: <T>(path: string, body: unknown) => request<T>(path, { method: 'PUT', body: JSON.stringify(body) }),
   delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
 };

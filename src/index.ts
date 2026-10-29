@@ -3,7 +3,6 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
-import { secureHeaders } from 'hono/secure-headers';
 
 import teacherRoutes from './api/teacher';
 import adminRoutes from './api/admin';
@@ -33,7 +32,7 @@ app.route('/api/auth', authRoutes);
 app.route('/api/join', joinRoutes);
 
 // 静的ファイル配信 (Assets Binding)
-app.get('*', async (c, next) => {
+app.get('*', async (c) => {
   const asset = await c.env.ASSETS.fetch(c.req.raw);
   if (asset.status !== 404) return asset;
 

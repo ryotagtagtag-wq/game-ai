@@ -17,7 +17,6 @@ const app = new Hono<{ Bindings: Env }>();
 
 // ミドルウェア
 app.use('*', logger());
-app.use('*', secureHeaders());
 app.use('/api/*', cors({
   origin: ['https://ai-game.ryopc.org', 'http://localhost:8788'],
   credentials: true,

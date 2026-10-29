@@ -20,10 +20,4 @@
       "preview_id": "027ec5d3c3c34050979cb2d8c4dec28b"
     }
   ],
-  "routes": [
-    {
-      "pattern": "ai-game.ryopc.org/*",
-      "zone_name": "ryopc.org"
-    }
-  ]
 }

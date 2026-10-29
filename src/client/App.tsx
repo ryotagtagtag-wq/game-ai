@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'preact/hooks';
 import { useSignal } from '@preact/signals';
-import { Link } from 'preact-router/match';
+import { Link } from 'preact-router';
 import Home from './pages/Home';
 import TeacherRegister from './pages/TeacherRegister';
 import TeacherLogin from './pages/TeacherLogin';

@@ -3,27 +3,29 @@
 import { useSignal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
 import { api } from '../utils/api';
+import type { Participant, Lecture } from '../../shared';
 
 const TeacherDashboard = ({ user }: { user: any }) => {
   const activeTab = useSignal<'overview' | 'participants' | 'settings'>('overview');
-  const lecture = useSignal<any>(null);
-  const participants = useSignal<any[]>([]);
+  const lecture = useSignal<Lecture | null>(null);
+  const participants = useSignal<Participant[]>([]);
   const loading = useSignal(true);
   const error = useSignal('');
   const success = useSignal('');
 
   useEffect(() => {
-    const fetchLecture = async () => {
+    const fetchData = async () => {
       try {
-        const res = await api.get<{ lecture: import('../../shared').Lecture | null }>('/teacher/lecture');
+        const res = await api.get<{ lecture: Lecture | null; participants: Participant[] }>('/teacher/participants');
         lecture.value = res.lecture;
+        participants.value = res.participants || [];
       } catch (err: any) {
         error.value = err.message;
       } finally {
         loading.value = false;
       }
     };
-    fetchLecture();
+    fetchData();
   }, []);
 
   const handleCodeRegenerate = async () => {
@@ -42,7 +44,7 @@ const TeacherDashboard = ({ user }: { user: any }) => {
     e.preventDefault();
     try {
       const formData = new FormData(e.currentTarget as HTMLFormElement);
-      const res = await api.put<{ lecture: import('../../shared').Lecture }>('/teacher/lecture', {
+      const res = await api.put<{ lecture: Lecture }>('/teacher/lecture', {
         name: formData.get('name'),
         expiresAt: formData.get('expiresAt'),
         defaultGenLimit: Number(formData.get('defaultGenLimit')),
@@ -53,6 +55,45 @@ const TeacherDashboard = ({ user }: { user: any }) => {
       }
     } catch (err: any) {
       error.value = err.message;
+    }
+  };
+
+  const refreshParticipants = async () => {
+    try {
+      const res = await api.get<{ participants: Participant[] }>('/teacher/participants');
+      participants.value = res.participants || [];
+    } catch (err: any) {
+      error.value = err.message;
+    }
+  };
+
+  const handleApprove = async (id: string) => {
+    try {
+      await api.post(`/teacher/participants/${id}/approve`);
+      await refreshParticipants();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    const reason = prompt('却下理由（任意）');
+    try {
+      await api.post(`/teacher/participants/${id}/reject`, { reason: reason || '' });
+      await refreshParticipants();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const handleLimitChange = async (id: string, current: number) => {
+    const limit = prompt('新しい生成上限（空欄でデフォルト）', String(current || ''));
+    if (limit === null) return;
+    try {
+      await api.put(`/teacher/participants/${id}/gen-limit`, { limit: limit ? Number(limit) : null });
+      await refreshParticipants();
+    } catch (err: any) {
+      alert(err.message);
     }
   };
 
@@ -76,14 +117,14 @@ const TeacherDashboard = ({ user }: { user: any }) => {
 
       <div class="tab-panel">
         {activeTab.value === 'overview' && <OverviewTab lecture={lecture.value} />}
-        {activeTab.value === 'participants' && <ParticipantsTab lecture={lecture.value} />}
+        {activeTab.value === 'participants' && <ParticipantsTab lecture={lecture.value} participants={participants.value} onApprove={handleApprove} onReject={handleReject} onLimitChange={handleLimitChange} />}
         {activeTab.value === 'settings' && <SettingsTab lecture={lecture.value} onRegenerate={handleCodeRegenerate} onUpdate={handleLectureUpdate} />}
       </div>
     </div>
   );
 };
 
-const OverviewTab = ({ lecture }: { lecture: any }) => {
+const OverviewTab = ({ lecture }: { lecture: Lecture | null }) => {
   if (!lecture) return <p>講座が作成されていません</p>;
 
   const expired = lecture.expiresAt < Date.now();
@@ -136,45 +177,25 @@ const OverviewTab = ({ lecture }: { lecture: any }) => {
   );
 };
 
-const ParticipantsTab = ({ lecture }: { lecture: any }) => {
+const ParticipantsTab = ({
+  lecture,
+  participants,
+  onApprove,
+  onReject,
+  onLimitChange,
+}: {
+  lecture: Lecture | null;
+  participants: Participant[];
+  onApprove: (id: string) => void;
+  onReject: (id: string) => void;
+  onLimitChange: (id: string, current: number) => void;
+}) => {
   const filter = useSignal<'all' | 'pending' | 'approved' | 'rejected'>('all');
-  const participants = useSignal<any[]>([]);
-  const loading = useSignal(false);
-
-  // TODO: 参加者一覧取得API実装後、ここで読み込み
-
-  const handleApprove = async (id: string) => {
-    try {
-      await api.post(`/teacher/participants/${id}/approve`);
-      // 再読み込み
-    } catch (err: any) {
-      alert(err.message);
-    }
-  };
-
-  const handleReject = async (id: string) => {
-    const reason = prompt('却下理由（任意）');
-    try {
-      await api.post(`/teacher/participants/${id}/reject`, { reason: reason || '' });
-    } catch (err: any) {
-      alert(err.message);
-    }
-  };
-
-  const handleLimitChange = async (id: string, current: number) => {
-    const limit = prompt('新しい生成上限（空欄でデフォルト）', String(current || ''));
-    if (limit === null) return;
-    try {
-      await api.put(`/teacher/participants/${id}/gen-limit`, { limit: limit ? Number(limit) : null });
-    } catch (err: any) {
-      alert(err.message);
-    }
-  };
 
   return (
     <div class="participants-tab">
       <div class="filter-bar">
-        <select value={filter.value} onChange={(e) => filter.value = e.currentTarget.value as typeof filter.value} class="form-input" style={{width: 'auto', maxWidth: '200px'}}>
+        <select value={filter.value} onChange={(e) => filter.value = e.target.value as typeof filter.value} class="form-input" style={{width: 'auto', maxWidth: '200px'}}>
           <option value="all">全て</option>
           <option value="pending">承認待ち</option>
           <option value="approved">承認済み</option>
@@ -194,36 +215,38 @@ const ParticipantsTab = ({ lecture }: { lecture: any }) => {
             </tr>
           </thead>
           <tbody>
-            {participants.value.length === 0 ? (
+            {participants.length === 0 ? (
               <tr><td colSpan={5} style={{textAlign: 'center', padding: '48px', color: 'var(--color-text-muted)'}}>
                 参加者がいません。講座コードを生徒に配布してください。
               </td></tr>
             ) : (
-              participants.value.map((p: any) => (
-                <tr key={p.id}>
-                  <td>{new Date(p.joinedAt).toLocaleString('ja-JP')}</td>
-                  <td><span class="badge badge-{p.status}">{p.status === 'pending' ? '承認待ち' : p.status === 'approved' ? '承認済み' : '却下'}</span></td>
-                  <td>{p.genCount || 0} / {p.genLimit || lecture.defaultGenLimit}</td>
-                  <td>{p.lastUsed ? new Date(p.lastUsed).toLocaleString('ja-JP') : '—'}</td>
-                  <td>
-                    {p.status === 'pending' && (
-                      <>
-                        <button class="btn btn-primary btn-sm" onClick={() => handleApprove(p.id)}>承認</button>
-                        <button class="btn btn-danger btn-sm" onClick={() => handleReject(p.id)}>却下</button>
-                      </>
-                    )}
-                    {p.status === 'approved' && (
-                      <>
-                        <button class="btn btn-secondary btn-sm" onClick={() => handleLimitChange(p.id, p.genLimit)}>上限変更</button>
-                        <button class="btn btn-danger btn-sm" onClick={() => handleReject(p.id)}>却下</button>
-                      </>
-                    )}
-                    {p.status === 'rejected' && (
-                      <button class="btn btn-primary btn-sm" onClick={() => handleApprove(p.id)}>再承認</button>
-                    )}
-                  </td>
-                </tr>
-              ))
+              participants
+                .filter((p: Participant) => filter.value === 'all' || p.status === filter.value)
+                .map((p: Participant) => (
+                  <tr key={p.id}>
+                    <td>{new Date(p.joinedAt).toLocaleString('ja-JP')}</td>
+                    <td><span class={`badge badge-${p.status}`}>{p.status === 'pending' ? '承認待ち' : p.status === 'approved' ? '承認済み' : '却下'}</span></td>
+                    <td>{p.genCount || 0} / {p.genLimit || lecture?.defaultGenLimit}</td>
+                    <td>{p.lastUsed ? new Date(p.lastUsed).toLocaleString('ja-JP') : '—'}</td>
+                    <td>
+                      {p.status === 'pending' && (
+                        <>
+                          <button class="btn btn-primary btn-sm" onClick={() => onApprove(p.id)}>承認</button>
+                          <button class="btn btn-danger btn-sm" onClick={() => onReject(p.id)}>却下</button>
+                        </>
+                      )}
+                      {p.status === 'approved' && (
+                        <>
+                          <button class="btn btn-secondary btn-sm" onClick={() => onLimitChange(p.id, p.genLimit)}>上限変更</button>
+                          <button class="btn btn-danger btn-sm" onClick={() => onReject(p.id)}>却下</button>
+                        </>
+                      )}
+                      {p.status === 'rejected' && (
+                        <button class="btn btn-primary btn-sm" onClick={() => onApprove(p.id)}>再承認</button>
+                      )}
+                    </td>
+                  </tr>
+                ))
             )}
           </tbody>
         </table>
@@ -237,7 +260,7 @@ const SettingsTab = ({
   onRegenerate,
   onUpdate,
 }: {
-  lecture: any;
+  lecture: Lecture | null;
   onRegenerate: () => void;
   onUpdate: (e: Event) => void;
 }) => {

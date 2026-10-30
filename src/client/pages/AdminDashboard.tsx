@@ -3,16 +3,34 @@
 import { useSignal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
 import { api } from '../utils/api';
+import type { Teacher, Lecture } from '../../shared';
 
 const AdminDashboard = ({ user }: { user: any }) => {
   const activeTab = useSignal<'applications' | 'teachers' | 'lectures'>('applications');
-  const applications = useSignal<any[]>([]);
+  const applications = useSignal<Teacher[]>([]);
+  const teachers = useSignal<Teacher[]>([]);
+  const lectures = useSignal<import('../../shared').Lecture[]>([]);
   const loading = useSignal(true);
   const error = useSignal('');
 
   useEffect(() => {
-    // TODO: API実装後に読み込み
-    loading.value = false;
+    const fetchData = async () => {
+      try {
+        const [appsRes, teachersRes, lecturesRes] = await Promise.all([
+          api.get<{ teachers: Teacher[] }>('/admin/teachers?status=pending'),
+          api.get<{ teachers: Teacher[] }>('/admin/teachers?status=all'),
+          api.get<{ lectures: import('../../shared').Lecture[] }>('/admin/lectures'),
+        ]);
+        applications.value = appsRes.teachers;
+        teachers.value = teachersRes.teachers;
+        lectures.value = lecturesRes.lectures;
+      } catch (err: any) {
+        error.value = err.message;
+      } finally {
+        loading.value = false;
+      }
+    };
+    fetchData();
   }, []);
 
   const handleApprove = async (id: string) => {
@@ -20,6 +38,12 @@ const AdminDashboard = ({ user }: { user: any }) => {
     try {
       await api.post(`/admin/teachers/${id}/approve`);
       // 再読み込み
+      const [appsRes, teachersRes] = await Promise.all([
+        api.get<{ teachers: Teacher[] }>('/admin/teachers?status=pending'),
+        api.get<{ teachers: Teacher[] }>('/admin/teachers?status=all'),
+      ]);
+      applications.value = appsRes.teachers;
+      teachers.value = teachersRes.teachers;
     } catch (err: any) {
       alert(err.message);
     }
@@ -29,6 +53,12 @@ const AdminDashboard = ({ user }: { user: any }) => {
     const reason = prompt('却下理由（任意）');
     try {
       await api.post(`/admin/teachers/${id}/reject`, { reason: reason || '' });
+      const [appsRes, teachersRes] = await Promise.all([
+        api.get<{ teachers: Teacher[] }>('/admin/teachers?status=pending'),
+        api.get<{ teachers: Teacher[] }>('/admin/teachers?status=all'),
+      ]);
+      applications.value = appsRes.teachers;
+      teachers.value = teachersRes.teachers;
     } catch (err: any) {
       alert(err.message);
     }
@@ -59,8 +89,8 @@ const AdminDashboard = ({ user }: { user: any }) => {
 
       <div class="tab-panel">
         {activeTab.value === 'applications' && <ApplicationsTab applications={applications.value} onApprove={handleApprove} onReject={handleReject} />}
-        {activeTab.value === 'teachers' && <TeachersTab />}
-        {activeTab.value === 'lectures' && <LecturesTab />}
+        {activeTab.value === 'teachers' && <TeachersTab teachers={teachers.value} />}
+        {activeTab.value === 'lectures' && <LecturesTab lectures={lectures.value} />}
       </div>
     </div>
   );
@@ -71,7 +101,7 @@ const ApplicationsTab = ({
   onApprove,
   onReject,
 }: {
-  applications: any[];
+  applications: Teacher[];
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
 }) => {
@@ -97,7 +127,7 @@ const ApplicationsTab = ({
               </tr>
             </thead>
             <tbody>
-              {pendingApps.map((app: any) => (
+              {pendingApps.map((app: Teacher) => (
                 <tr key={app.id}>
                   <td>{new Date(app.appliedAt).toLocaleString('ja-JP')}</td>
                   <td>{app.lectureName}</td>
@@ -121,18 +151,78 @@ const ApplicationsTab = ({
   );
 };
 
-const TeachersTab = () => {
+const TeachersTab = ({ teachers }: { teachers: Teacher[] }) => {
   return (
     <div class="teachers-tab">
-      <p class="status-note">実装予定：全講座主催者一覧、ステータス変更等</p>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>講座名</th>
+              <th>メールアドレス</th>
+              <th>ステータス</th>
+              <th>申請日時</th>
+              <th>審査日時</th>
+            </tr>
+          </thead>
+          <tbody>
+            {teachers.length === 0 ? (
+              <tr><td colSpan={5} style={{textAlign: 'center', padding: '48px', color: 'var(--color-text-muted)'}}>
+                講座主催者がいません
+              </td></tr>
+            ) : (
+              teachers.map((t: Teacher) => (
+                <tr key={t.id}>
+                  <td>{t.lectureName}</td>
+                  <td>{t.email}</td>
+                  <td><span class={`badge badge-${t.status}`}>{t.status === 'pending' ? '承認待ち' : t.status === 'approved' ? '承認済み' : '却下'}</span></td>
+                  <td>{new Date(t.appliedAt).toLocaleString('ja-JP')}</td>
+                  <td>{t.reviewedAt ? new Date(t.reviewedAt).toLocaleString('ja-JP') : '—'}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };
 
-const LecturesTab = () => {
+const LecturesTab = ({ lectures }: { lectures: import('../../shared').Lecture[] }) => {
   return (
     <div class="lectures-tab">
-      <p class="status-note">実装予定：全講座一覧、参加者数、コード確認等</p>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>講座名</th>
+              <th>講座コード</th>
+              <th>講座主催者</th>
+              <th>有効期限</th>
+              <th>デフォルト上限</th>
+              <th>作成日</th>
+            </tr>
+          </thead>
+          <tbody>
+            {lectures.length === 0 ? (
+              <tr><td colSpan={6} style={{textAlign: 'center', padding: '48px', color: 'var(--color-text-muted)'}}>
+                講座がありません
+              </td></tr>
+            ) : (
+              lectures.map((l: import('../../shared').Lecture) => (
+                <tr key={l.id}>
+                  <td>{l.name}</td>
+                  <td><code>{l.code}</code></td>
+                  <td>{l.teacherId}</td>
+                  <td>{new Date(l.expiresAt).toLocaleDateString('ja-JP')}</td>
+                  <td>{l.defaultGenLimit}</td>
+                  <td>{new Date(l.createdAt).toLocaleDateString('ja-JP')}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };

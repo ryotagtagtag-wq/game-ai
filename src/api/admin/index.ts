@@ -23,8 +23,18 @@ async function requireAdmin(c: any, next: any) {
 // 教師申請一覧
 admin.get('/teachers', requireAdmin, async (c) => {
   const status = c.req.query('status') || 'pending';
-  // TODO: インデックス実装まで空配列
-  return c.json({ teachers: [] });
+  // 全教師を取得（KVから全件スキャン）
+  const allKeys = await c.env.GAME_KV.list({ prefix: 'teacher:' });
+  const teachers: Teacher[] = [];
+  for (const key of allKeys.keys) {
+    const t = await c.env.GAME_KV.get(key.name, 'json') as Teacher | null;
+    if (t && (status === 'all' || t.status === status)) {
+      teachers.push(t);
+    }
+  }
+  // 申請日時順でソート
+  teachers.sort((a, b) => b.appliedAt - a.appliedAt);
+  return c.json({ teachers });
 });
 
 // 教師承認
@@ -85,6 +95,18 @@ admin.post('/teachers/:id/reject', requireAdmin, async (c) => {
   }
 
   return c.json({ success: true, teacher });
+});
+
+// 講座一覧
+admin.get('/lectures', requireAdmin, async (c) => {
+  const allKeys = await c.env.GAME_KV.list({ prefix: 'lecture:id:' });
+  const lectures: Lecture[] = [];
+  for (const key of allKeys.keys) {
+    const l = await c.env.GAME_KV.get(key.name, 'json') as Lecture | null;
+    if (l) lectures.push(l);
+  }
+  lectures.sort((a, b) => b.createdAt - a.createdAt);
+  return c.json({ lectures });
 });
 
 function generateId(prefix = ''): string {

@@ -105,10 +105,25 @@ teacher.put('/lecture', requireTeacher, async (c) => {
 teacher.get('/participants', requireTeacher, async (c) => {
   const teacher = c.get('teacher');
   const lecture = await kvGet<Lecture>(c.env, `lecture:teacher:${teacher.id}`);
-  if (!lecture) return c.json({ participants: [] });
+  if (!lecture) return c.json({ participants: [], lecture: null });
 
-  // TODO: インデックスから取得する実装が必要。現状は全件スキャンの代替
-  return c.json({ participants: [], lecture });
+  // 講座の参加者一覧を取得（KVから全件スキャンで実装）
+  const allKeys = await c.env.GAME_KV.list({ prefix: 'participant:' });
+  const participants: Participant[] = [];
+  for (const key of allKeys.keys) {
+    const p = await c.env.GAME_KV.get(key.name, 'json') as Participant | null;
+    if (p && p.lectureId === lecture.id) {
+      // 今日の生成回数を取得
+      const today = new Date().toISOString().slice(0, 10);
+      const genCount = await c.env.GAME_KV.get(`gen:count:${p.id}:${today}`, 'json') as { count: number } | null;
+      participants.push({
+        ...p,
+        genCount: genCount?.count || 0,
+      });
+    }
+  }
+
+  return c.json({ participants, lecture });
 });
 
 // 参加者承認

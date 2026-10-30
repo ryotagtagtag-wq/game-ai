@@ -17,6 +17,17 @@ const GameMaker = ({ user }: { user: any }) => {
   const used = useSignal(0);
   const error = useSignal('');
   const success = useSignal('');
+  const editingGameId = useSignal<string | null>(null);
+
+  // URLパラメータから編集対象のゲームIDを取得
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const editId = params.get('game');
+    if (editId) {
+      editingGameId.value = editId;
+      loadGameForEdit(editId);
+    }
+  }, []);
 
   // 残り回数取得
   useEffect(() => {
@@ -31,6 +42,17 @@ const GameMaker = ({ user }: { user: any }) => {
     fetchRemaining();
   }, []);
 
+  const loadGameForEdit = async (id: string) => {
+    try {
+      const res = await api.get<{ game: any }>(`/game/${id}`);
+      html.value = res.game.htmlContent;
+      prompt.value = res.game.promptHistory?.[0] || '';
+      gameId.value = res.game.id;
+    } catch (err: any) {
+      error.value = 'ゲームの読み込みに失敗しました';
+    }
+  };
+
   const handleGenerate = async (e: Event) => {
     e.preventDefault();
     if (!prompt.value.trim()) return;
@@ -42,6 +64,7 @@ const GameMaker = ({ user }: { user: any }) => {
     generating.value = true;
     error.value = '';
     success.value = '';
+    editingGameId.value = null; // 新規生成時は編集モード解除
 
     try {
       const res = await api.post<{ game: Game; remaining: number }>('/game/generate', { prompt: prompt.value });
@@ -102,6 +125,12 @@ const GameMaker = ({ user }: { user: any }) => {
         <h1 class="page-title">ゲーム作成</h1>
         <p class="page-subtitle">自然言語でゲームを作成・修正しよう</p>
       </div>
+
+      {editingGameId.value && (
+        <div class="alert alert-info" style={{marginBottom: '16px'}}>
+          📝 既存ゲームを編集中 (ID: {editingGameId.value}) <button class="btn btn-secondary btn-sm" style={{marginLeft: '12px'}} onClick={() => { editingGameId.value = null; window.history.replaceState({}, '', '/app'); }}>新規作成に戻る</button>
+        </div>
+      )}
 
       <div class="remaining-badge" className={remaining.value === 0 ? 'danger' : remaining.value <= 3 ? 'warning' : ''}>
         🎮 残り生成回数: <strong>{remaining.value} / {limit.value}</strong>

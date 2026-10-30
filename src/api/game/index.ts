@@ -133,6 +133,23 @@ game.get('/list/mine', requireParticipant, async (c) => {
   return c.json({ games: games.filter((g): g is Game => g !== null) });
 });
 
+// ゲーム保存（既存ゲームの更新）
+game.post('/save', requireParticipant, async (c) => {
+  const participant = c.get('participant');
+  const { gameId } = await c.req.json();
+
+  if (!gameId) throw new HTTPException(400, { message: 'ゲームIDが必要です' });
+
+  const existing = await c.env.GAME_KV.get(`game:${gameId}`, 'json') as Game | null;
+  if (!existing) throw new HTTPException(404, { message: 'ゲームが見つかりません' });
+  if (existing.participantId !== participant.id) throw new HTTPException(403, { message: '権限がありません' });
+
+  existing.updatedAt = Date.now();
+  await c.env.GAME_KV.put(`game:${gameId}`, JSON.stringify(existing));
+
+  return c.json({ success: true, game: existing });
+});
+
 // 残り生成回数取得
 game.get('/remaining', requireParticipant, async (c) => {
   const participant = c.get('participant');

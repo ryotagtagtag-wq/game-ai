@@ -16,10 +16,6 @@ const app = new Hono<{ Bindings: Env }>();
 
 // ミドルウェア
 app.use('*', logger());
-app.use('/api/*', cors({
-  origin: ['https://ai-game.ryopc.org', 'http://localhost:8788'],
-  credentials: true,
-}));
 
 // ヘルスチェック
 app.get('/api/health', (c) => c.json({ ok: true, timestamp: Date.now() }));
